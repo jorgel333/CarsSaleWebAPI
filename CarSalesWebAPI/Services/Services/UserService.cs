@@ -122,16 +122,21 @@ namespace CarSalesWebAPI.Services.Services
             return GenerateSuccessfullResponse(userDto);
         }
 
-        public async Task<ResponseService> UpdateUser(int id, UpdateUserDto userDto, CancellationToken cancellationToken)
+        public async Task<ResponseService> UpdateUser(int id, UpdateUserDto upUserDto, CancellationToken cancellationToken)
         {
+            var user = await _uow.UserRepository.GetById(u => u.Id == id && u.IsDeleted == false, cancellationToken);
             
-            if(id != userDto.Id)
+            if (user is null)
             {
-                return GenerateErrorResponse("Usuário não existe");
+                return GenerateErrorResponse("Usuário não encontrado");
+            }
+            if(id != upUserDto.Id)
+            {
+                return GenerateErrorResponse("Não pode alterar o id");
             }
 
-            var user = _mapper.Map<User>(userDto);
-            _uow.UserRepository.UpdateEntity(user);
+            var userUp = _mapper.Map(upUserDto, user);
+            _uow.UserRepository.UpdateEntity(userUp);
             await _uow.Commit(cancellationToken);
             return GenerateSuccessfullResponse("Usuário atualizado com sucesso");
         }
