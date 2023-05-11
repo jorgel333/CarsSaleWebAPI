@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CarSalesWebAPI.Domain.Dtos.AssessmentRecordDtos;
 using CarSalesWebAPI.Domain.Entities;
 
 namespace CarSalesWebAPI.Services.Profiles
@@ -7,7 +8,8 @@ namespace CarSalesWebAPI.Services.Profiles
     {
         public AssessmentRecordProfile()
         {
-            CreateMap<AssessmentRecord,  AssessmentRecordProfile>().ReverseMap();
+            CreateMap<AssessmentRecord,  RegisterEvaluationDTO>().ReverseMap();
+            CreateMap<AssessmentRecord, AssessmentCarDetailsDto>().ReverseMap();
         }
     }
 }

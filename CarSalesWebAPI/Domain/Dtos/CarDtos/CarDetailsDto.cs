@@ -4,6 +4,7 @@ namespace CarSalesWebAPI.Domain.Dtos.CarDtos
 {
     public class CarDetailsDto
     {
+        public int Id { get; set; }
         public string Model { get; set; }
         public string Brand { get; set; }
         public string Color { get; set; }
@@ -11,7 +12,6 @@ namespace CarSalesWebAPI.Domain.Dtos.CarDtos
         public double Price { get; set; }
         public int YearOfManufacture { get; set; }
         public int Stock { get; set; }
-        public string Average { get; set; }
-        public IEnumerable<AssessmentCarDetailsDto> Evaluation { get; set; }
+        public double Average { get; set; }
     }
 }

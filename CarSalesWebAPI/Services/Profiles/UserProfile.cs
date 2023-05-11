@@ -10,9 +10,9 @@ namespace CarSalesWebAPI.Services.Profiles
         {
             CreateMap<User, UserDto>().ReverseMap();
             CreateMap<User, UpdateUserDto>().ReverseMap()
-                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
-                .ForMember(dest => dest.IsAdmin, opt => opt.Ignore());
-                
+                    .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                    .ForMember(dest => dest.IsAdmin, opt => opt.Ignore());
+
         }
     }
 }

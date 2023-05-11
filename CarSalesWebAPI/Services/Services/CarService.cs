@@ -16,11 +16,11 @@ namespace CarSalesWebAPI.Services.Services
             _uow = uow;
             _mapper = mapper;
         }
-
-
         public async Task<ResponseService> CreateCar(Car car, CancellationToken cancellationToken)
         {
-            var getCar = await _uow.CarRepository.GetById(c => c.Model == car.Model, cancellationToken);
+            var getCar = await _uow.CarRepository.GetById(c => c.Model == car.Model 
+                                            && c.YearOfManufacture == car.YearOfManufacture
+                                            && c.Color == car.Color, cancellationToken);
 
             if (getCar != null)
             {
@@ -46,13 +46,17 @@ namespace CarSalesWebAPI.Services.Services
             return GenerateSuccessfullResponse("Carro Deletado com sucesso");
         }
 
-        public async Task<ResponseService> UpdateCar(Car car, CancellationToken cancellationToken)
+        public async Task<ResponseService> UpdateCar(int id, Car car, CancellationToken cancellationToken)
         {
-            var carUp = await _uow.CarRepository.GetById(c => c.Id == car.Id && c.IsDeleted == false, cancellationToken);
+            var carUp = await _uow.CarRepository.GetById(c => c.Id == id && c.IsDeleted == false, cancellationToken);
             
             if (carUp is null)
             {
                 return GenerateErrorResponse("Carro não encontrado");
+            }
+            if (id != car.Id)
+            {
+                return GenerateErrorResponse("Não pode alterar o id");
             }
 
             _uow.CarRepository.UpdateEntity(car);
@@ -69,38 +73,34 @@ namespace CarSalesWebAPI.Services.Services
                 return GenerateErroResponse<CarDetailsDto>("Carro não encontrado");
             }
 
-            var carDetails = new CarDetailsDto()
-            {
-                Model = car.Model,
-                Brand = car.Brand,
-                Color = car.Color,
-                YearOfManufacture = car.YearOfManufacture,
-                Type = car.Type,
-                Price = car.Price,
-                Stock = car.Stock,
-                Average = AverageVotes(car).ToString("F2"),
-                Evaluation = _mapper.Map<IEnumerable<AssessmentCarDetailsDto>>(car.Assessments)
-            };
-
-            return GenerateSuccessfullResponse(carDetails);
-            
-        }
-        public static double AverageVotes(Car car)
-        {
-            return car.Assessments.Select(x => x.Note).Average();
+            var carDetails = _mapper.Map<CarDetailsDto>(car);
+            return GenerateSuccessfullResponse(carDetails);  
         }
 
         public async Task<ResponseService<IEnumerable<CarsAllDto>>> GetAllCars(CancellationToken cancellationToken)
         {
             var cars = await _uow.CarRepository.GetAllOrder();
 
-            if (cars is null)
+            if (!cars.Any())
             {
                 return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado");
             }
 
             var carMapper = _mapper.Map<IEnumerable<CarsAllDto>>(cars);
             return GenerateSuccessfullResponse(carMapper);
+        }
+
+        public async Task<ResponseService<IEnumerable<CarsAllDto>>> GetFilters(string model, string brand, string type, int? year, CancellationToken cancellationToken)
+        {
+            var carsFilters = await _uow.CarRepository.GetCarsFilter(model, brand, type, year, cancellationToken);
+
+            if (!carsFilters.Any())
+            {
+                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado");
+            }
+
+            var carsFiltersDto = _mapper.Map<IEnumerable<CarsAllDto>>(carsFilters);
+            return GenerateSuccessfullResponse(carsFiltersDto);
         }
     }
 }

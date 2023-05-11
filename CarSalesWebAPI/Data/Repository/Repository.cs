@@ -12,7 +12,7 @@ namespace CarSalesWebAPI.Data.Repository
         public Repository(AppDbContext context)
         {
             _context = context;
-            _dbSet = context.Set<T>();
+            _dbSet = _context.Set<T>();
         }
         public void Add(T entity)
         {

@@ -10,7 +10,8 @@ namespace CarSalesWebAPI.Domain.Entities
         public string Type { get; set; }
         public double Price { get; set; }
         public int YearOfManufacture { get; set; } 
-        public int Stock { get; set; } 
+        public int Stock { get; set; }
+        public double Average { get; set; }
         public IEnumerable<AssessmentRecord> Assessments { get; set; }
 
         public Car()

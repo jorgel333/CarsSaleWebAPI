@@ -1,5 +1,6 @@
 ﻿using CarSalesWebAPI.Domain.Entities;
 using CarSalesWebAPI.Domain.Interfaces.Repositorys;
+using Microsoft.EntityFrameworkCore;
 
 namespace CarSalesWebAPI.Data.Repository
 {
@@ -8,6 +9,6 @@ namespace CarSalesWebAPI.Data.Repository
         public AssessmentRecordRepository(AppDbContext context) : base(context)
         {
         }
-       
+
     }
 }

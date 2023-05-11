@@ -64,8 +64,8 @@ namespace CarSalesWebAPI.Controllers
             return BadRequest(commonUser.Message);
         }
 
-        [HttpDelete("{id:int}/deleteanyuser")]
-        public async Task<ActionResult> DeleteAnyUser(int id, CancellationToken cancellation)
+        [HttpDelete("{id:int}/deleteuser")]
+        public async Task<ActionResult> DeleteUser(int id, CancellationToken cancellation)
         {
             var comonUser = await _userService.DeleteUser(id, cancellation);
 
