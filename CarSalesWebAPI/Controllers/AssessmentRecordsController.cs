@@ -1,5 +1,6 @@
 ﻿using CarSalesWebAPI.Domain.Dtos.AssessmentRecordDtos;
 using CarSalesWebAPI.Services.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,14 +17,16 @@ namespace CarSalesWebAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult> CreateAssessment(RegisterEvaluationDTO rgEvDto, CancellationToken cancellationToken)
         {
             var assessment = await _assessmentRecordService.RegisterEvaluation(rgEvDto, cancellationToken);
+
             if (assessment.Success)
             {
                 return Ok(assessment);
             }
-            return BadRequest(assessment.Message);
+            return BadRequest(assessment);
         }
     }
 }

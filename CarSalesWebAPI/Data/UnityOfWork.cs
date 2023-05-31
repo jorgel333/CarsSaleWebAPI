@@ -19,14 +19,14 @@ namespace CarSalesWebAPI.Data
         {
             get
             {
-                return _carRepository = _carRepository ?? new CarRepository(_context);
+                return _carRepository ??= new CarRepository(_context);
             }
         }
         public IUserRepository UserRepository
         {
             get
             {
-                return _userRepository = _userRepository ?? new UserRepository(_context);
+                return _userRepository ??= new UserRepository(_context);
             }
         }
 
@@ -34,13 +34,13 @@ namespace CarSalesWebAPI.Data
         {
             get
             {
-                return _assessmentRecordRepository = _assessmentRecordRepository ?? new AssessmentRecordRepository(_context);
+                return _assessmentRecordRepository ??= new AssessmentRecordRepository(_context);
             }
         }
 
         public async Task Commit(CancellationToken cancellationToken)
         {
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public void Dispose()   

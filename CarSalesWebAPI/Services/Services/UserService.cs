@@ -2,7 +2,12 @@
 using CarSalesWebAPI.Domain.Interfaces;
 using CarSalesWebAPI.Services.Interfaces.Services;
 using CarSalesWebAPI.Domain.Dtos.UserDtos;
+using CarSalesWebAPI.Services.SecurityServices.TokenService;
+using CarSalesWebAPI.Services.SecurityServices.CryptographyService;
 using AutoMapper;
+using System.Net;
+using CarSalesWebAPI.Services.Helpers;
+using CarSalesWebAPI.Services.Validations.UserValidator;
 
 namespace CarSalesWebAPI.Services.Services
 {
@@ -10,14 +15,18 @@ namespace CarSalesWebAPI.Services.Services
     {
         private readonly IUnityOfWork _uow;
         private readonly IMapper _mapper;
+        private readonly ITokenService _token;
+        private readonly ICryptography _criptograph;
 
-        public UserService(IUnityOfWork uow, IMapper mapper)
+        public UserService(IUnityOfWork uow, IMapper mapper, ITokenService token, ICryptography criptograph)
         {
             _uow = uow;
             _mapper = mapper;
+            _token = token;
+            _criptograph = criptograph;
         }
 
-        public async Task<ResponseService> CreateAdm(CreateUserDto userDto, CancellationToken cancellationToken)
+        public async Task<ResponseService> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellationToken)
         {
             var userEmail = await _uow.UserRepository.GetById(u=> u.Email == userDto.Email, cancellationToken);
 
@@ -25,61 +34,49 @@ namespace CarSalesWebAPI.Services.Services
             {
                 if (userDto.Password != userDto.ComfirmPassword)
                 {
-                    return GenerateErrorResponse("Senhas diferentes");
+                    return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
                 }
                 userEmail.IsAdmin = true;
                 _uow.UserRepository.UpdateEntity(userEmail);
                 await _uow.Commit(cancellationToken);
-                return GenerateSuccessfullResponse("Usuario promovio a adm com sucesso");
+                return GenerateSuccessResponse(HttpStatusCode.Created);
             }
 
             if (userDto.Password != userDto.ComfirmPassword)
             {
-                return GenerateErrorResponse("Senhas diferentes");
+                return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
             }
-
-            var user = new User
-            {
-                Name = userDto.Name,
-                Email = userDto.Email,
-                Password = userDto.Password,
-                Birthday = userDto.Birthday,
-                IsDeleted = false,
-                IsAdmin = true
-            };
-
+            
+            var user = _mapper.Map<User>(userDto);
+            user.Password = _criptograph.EncryptPassword(userDto.Password);
             _uow.UserRepository.Add(user);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Usuário Adm criado com sucesso");
+            return GenerateSuccessResponse(HttpStatusCode.Created);
         }
 
-        public async Task<ResponseService> CreateCommonUser(CreateUserDto userDto, CancellationToken cancellationToken)
+        public async Task<ResponseService> CreateCommonUser(CreateCommonUserDto userDto, CancellationToken cancellationToken)
         {
-            var userEmail = await _uow.UserRepository.GetById(u => u.Email == userDto.Email, cancellationToken);
+            if (!PerformValidation(new CreateCommonUserDtoValidator(), userDto))
+            {
+                GenerateErroValidationResponse(Notify(), HttpStatusCode.BadRequest);
+            }
+            var userEmail = _uow.UserRepository.GetById(u => u.Email == userDto.Email, cancellationToken);
 
             if(userEmail != null) //especiifcar no banco de dados que essa informação não pode ser nula
             {
-                return GenerateErrorResponse("Email já em uso");
+                return GenerateErroResponse("Email já em uso", HttpStatusCode.BadRequest);
             }
 
             if(userDto.Password != userDto.ComfirmPassword)
             {
-                return GenerateErrorResponse("Senhas diferentes");
+                return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
             }
 
-            var user = new User
-            {
-                Name = userDto.Name,
-                Email = userDto.Email,
-                Password = userDto.Password,
-                Birthday = userDto.Birthday,
-                IsDeleted = false,
-                IsAdmin = false
-            };
-
+            var user = _mapper.Map<User>(userDto);
+            user.Password = _criptograph.EncryptPassword(userDto.Password);
             _uow.UserRepository.Add(user);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Usuário cadastrado com sucesso");
+            return GenerateSuccessResponse("Usuário cadastrado com sucesso", HttpStatusCode.Created);
         }
 
         public async Task<ResponseService> DeleteUser(int id, CancellationToken cancellationToken)
@@ -88,25 +85,37 @@ namespace CarSalesWebAPI.Services.Services
             
             if(user is null)
             {
-                return GenerateErrorResponse("Usuário não encontrado");
+                return GenerateErroResponse("Usuário não encontrado", HttpStatusCode.NotFound);
             }
 
             _uow.UserRepository.SoftDelete(user);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Usuário deletado com sucesso");
+            return GenerateSuccessResponse("Usuário deletado com sucesso", HttpStatusCode.NoContent);
         }
 
+        public async Task<ResponseService<UserDto>> GetUserById(int id, CancellationToken cancellationToken)
+        {
+            var user = await _uow.UserRepository.GetById(u => u.Id == id && u.IsDeleted == false, cancellationToken);
+
+            if(user is null)
+            {
+                return GenerateErroResponse<UserDto>("Usuário não encontrado", HttpStatusCode.NotFound);
+            }
+
+            var userDto = _mapper.Map<UserDto>(user);
+            return GenerateSuccessResponse(userDto, HttpStatusCode.OK);
+        }
         public async Task<ResponseService<IEnumerable<UserDto>>> GetAllUsers(CancellationToken cancellation)
         {
             var users = await _uow.UserRepository.GetUserOrderName(cancellation);
 
             if(!users.Any())
             {
-                return GenerateErroResponse<IEnumerable<UserDto>>("Nenhum usuário cadastrado");
+                return GenerateErroResponse<IEnumerable<UserDto>>("Nenhum usuário cadastrado", HttpStatusCode.NotFound);
             }
 
             var userDto = _mapper.Map<IEnumerable<UserDto>>(users); 
-            return GenerateSuccessfullResponse(userDto);
+            return GenerateSuccessResponse(userDto, HttpStatusCode.OK);
         }
 
         public async Task<ResponseService<IEnumerable<UserDto>>> GetAllCommonUsersDisable(CancellationToken cancellation)
@@ -115,11 +124,11 @@ namespace CarSalesWebAPI.Services.Services
 
             if (!users.Any())
             {
-                return GenerateErroResponse<IEnumerable<UserDto>>("Nenhum usuário Excluído");
+                return GenerateErroResponse<IEnumerable<UserDto>>("Nenhum usuário Excluído", HttpStatusCode.NotFound);
             }
 
             var userDto = _mapper.Map<IEnumerable<UserDto>>(users);
-            return GenerateSuccessfullResponse(userDto);
+            return GenerateSuccessResponse(userDto, HttpStatusCode.OK);
         }
 
         public async Task<ResponseService> UpdateUser(int id, UpdateUserDto upUserDto, CancellationToken cancellationToken)
@@ -128,17 +137,45 @@ namespace CarSalesWebAPI.Services.Services
             
             if (user is null)
             {
-                return GenerateErrorResponse("Usuário não encontrado");
+                return GenerateErroResponse("Usuário não encontrado", HttpStatusCode.NotFound);
             }
             if(id != upUserDto.Id)
             {
-                return GenerateErrorResponse("Não pode alterar o id");
+                return GenerateErroResponse("Não pode alterar o id", HttpStatusCode.BadRequest);
             }
 
             var userUp = _mapper.Map(upUserDto, user);
             _uow.UserRepository.UpdateEntity(userUp);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Usuário atualizado com sucesso");
+            return GenerateSuccessResponse("Usuário atualizado com sucesso", HttpStatusCode.NoContent);
+        }
+
+        public async Task<ResponseService<LoginOutUserDto>> Login(LoginUserDto loginUser, CancellationToken cancellationToken)
+        {
+            var user = await _uow.UserRepository.GetById(u => u.Email == loginUser.Email 
+                                                        && u.IsDeleted == false, cancellationToken);
+
+            if (user is null)
+            {
+                return GenerateErroResponse<LoginOutUserDto>("Login inválido...", HttpStatusCode.BadRequest);
+            }
+
+            if (_criptograph.VerifyPassword(loginUser.Password, user.Password))
+            {
+                var userDto = _mapper.Map<UserTokenDto>(user);
+                var createToken = await _token.GenerateToken(userDto);
+
+                var result = new LoginOutUserDto()
+                {
+                    Authenticated = true,
+                    Token = createToken,
+                    Message = "Token jwt ok"
+                };
+
+                return GenerateSuccessResponse(result, HttpStatusCode.OK);
+            }
+
+            return GenerateErroResponse<LoginOutUserDto>("Erro ao fazer login", HttpStatusCode.BadRequest);
         }
     }
 }

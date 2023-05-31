@@ -51,7 +51,7 @@ namespace CarSalesWebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AssessmentRecords");
+                    b.ToTable("AssessmentRecords", (string)null);
                 });
 
             modelBuilder.Entity("CarSalesWebAPI.Domain.Entities.Car", b =>
@@ -91,7 +91,7 @@ namespace CarSalesWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Cars");
+                    b.ToTable("Cars", (string)null);
                 });
 
             modelBuilder.Entity("CarSalesWebAPI.Domain.Entities.User", b =>
@@ -122,7 +122,7 @@ namespace CarSalesWebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("CarSalesWebAPI.Domain.Entities.AssessmentRecord", b =>

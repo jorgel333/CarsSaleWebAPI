@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace CarSalesWebAPI.Services
+namespace CarSalesWebAPI.Services.Helpers
 {
     public class ResponseService
     {

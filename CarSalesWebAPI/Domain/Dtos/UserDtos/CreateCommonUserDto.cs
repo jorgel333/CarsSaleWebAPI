@@ -1,6 +1,6 @@
 ﻿namespace CarSalesWebAPI.Domain.Dtos.UserDtos
 {
-    public class CreateUserDto
+    public class CreateCommonUserDto
     {
         public string Name { get; set; }
         public string Email { get; set; }

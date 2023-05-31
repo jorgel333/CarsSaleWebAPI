@@ -10,6 +10,10 @@ namespace CarSalesWebAPI.Services.Profiles
         {
             CreateMap<Car, CarDetailsDto>().ReverseMap();
             CreateMap<Car, CarsAllDto>().ReverseMap();
+            CreateMap<UpdateCarDto, Car>().ForMember(dest => dest.Average, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore());
+            CreateMap<CreateCarDto, Car>().ForMember(dest => dest.IsDeleted,
+               opt => opt.MapFrom(src => false));
         }
     }
 }

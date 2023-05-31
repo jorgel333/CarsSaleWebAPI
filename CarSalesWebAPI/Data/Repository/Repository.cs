@@ -37,7 +37,7 @@ namespace CarSalesWebAPI.Data.Repository
 
         public async Task<T> GetById(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken)
         {
-            return await _dbSet.FirstOrDefaultAsync(predicate, cancellationToken);
+            return await _dbSet.SingleOrDefaultAsync(predicate, cancellationToken);
         }
 
         public void UpdateEntity(T entity)

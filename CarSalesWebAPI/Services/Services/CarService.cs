@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
-using CarSalesWebAPI.Domain.Dtos.AssessmentRecordDtos;
 using CarSalesWebAPI.Domain.Dtos.CarDtos;
 using CarSalesWebAPI.Domain.Entities;
 using CarSalesWebAPI.Domain.Interfaces;
+using CarSalesWebAPI.Domain.Pagination;
+using CarSalesWebAPI.Services.Helpers;
 using CarSalesWebAPI.Services.Interfaces.Services;
+using System.Net;
 
 namespace CarSalesWebAPI.Services.Services
 {
@@ -16,52 +18,56 @@ namespace CarSalesWebAPI.Services.Services
             _uow = uow;
             _mapper = mapper;
         }
-        public async Task<ResponseService> CreateCar(Car car, CancellationToken cancellationToken)
+        public async Task<ResponseService<CarsAllDto>> CreateCar(CreateCarDto carDto, CancellationToken cancellationToken)
         {
-            var getCar = await _uow.CarRepository.GetById(c => c.Model == car.Model 
-                                            && c.YearOfManufacture == car.YearOfManufacture
-                                            && c.Color == car.Color, cancellationToken);
+            var getCar = await _uow.CarRepository.GetById(c => c.Model == carDto.Model 
+                                            && c.YearOfManufacture == carDto.YearOfManufacture
+                                            && c.Color == carDto.Color
+                                            && c.Type == carDto.Type, cancellationToken);
 
             if (getCar != null)
             {
-                return GenerateErrorResponse("Esse carro já foi cadastrado");
+                return GenerateErroResponse<CarsAllDto>("Esse carro já foi cadastrado", HttpStatusCode.BadRequest);
             }
 
+            var car = _mapper.Map(carDto, getCar);
             _uow.CarRepository.Add(car);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Carro cadastrado com sucesso");
+            var carViewDto = _mapper.Map<CarsAllDto>(car);
+            return GenerateSuccessResponse(carViewDto, HttpStatusCode.Created);
         }
 
         public async Task<ResponseService> DeleteCar(int id, CancellationToken cancellationToken)
         {
             var car = await _uow.CarRepository.GetById(c => c.Id == id && c.IsDeleted == false, cancellationToken);
             
-            if (car == null)
+            if (car is null)
             {
-                return GenerateErrorResponse("Carro não encontrado ou já deletado");
+                return GenerateErroResponse("Carro não encontrado ou já deletado", HttpStatusCode.NotFound);
             }
 
             _uow.CarRepository.SoftDelete(car);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Carro Deletado com sucesso");
+            return GenerateSuccessResponse("Carro deletado com sucesso", HttpStatusCode.NoContent);
         }
 
-        public async Task<ResponseService> UpdateCar(int id, Car car, CancellationToken cancellationToken)
+        public async Task<ResponseService> UpdateCar(int id, UpdateCarDto carDto, CancellationToken cancellationToken)
         {
             var carUp = await _uow.CarRepository.GetById(c => c.Id == id && c.IsDeleted == false, cancellationToken);
             
             if (carUp is null)
             {
-                return GenerateErrorResponse("Carro não encontrado");
+                return GenerateErroResponse("Carro não encontrado", HttpStatusCode.NotFound);
             }
-            if (id != car.Id)
+            if (id != carDto.Id)
             {
-                return GenerateErrorResponse("Não pode alterar o id");
+                return GenerateErroResponse("Não pode alterar o id", HttpStatusCode.BadRequest);
             }
 
+            var car = _mapper.Map(carDto, carUp);
             _uow.CarRepository.UpdateEntity(car);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessfullResponse("Carro atualizado com sucesso");
+            return GenerateSuccessResponse("Carro atualizado com sucesso", HttpStatusCode.NoContent);
         }
 
         public async Task<ResponseService<CarDetailsDto>> GetCarsDetails(int id, CancellationToken cancellationToken)
@@ -70,11 +76,11 @@ namespace CarSalesWebAPI.Services.Services
 
             if(car is null)
             {
-                return GenerateErroResponse<CarDetailsDto>("Carro não encontrado");
+                return GenerateErroResponse<CarDetailsDto>("Carro não encontrado", HttpStatusCode.NotFound);
             }
 
             var carDetails = _mapper.Map<CarDetailsDto>(car);
-            return GenerateSuccessfullResponse(carDetails);  
+            return GenerateSuccessResponse(carDetails, HttpStatusCode.OK);  
         }
 
         public async Task<ResponseService<IEnumerable<CarsAllDto>>> GetAllCars(CancellationToken cancellationToken)
@@ -83,11 +89,11 @@ namespace CarSalesWebAPI.Services.Services
 
             if (!cars.Any())
             {
-                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado");
+                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado", HttpStatusCode.NotFound);
             }
 
             var carMapper = _mapper.Map<IEnumerable<CarsAllDto>>(cars);
-            return GenerateSuccessfullResponse(carMapper);
+            return GenerateSuccessResponse(carMapper, HttpStatusCode.OK);
         }
 
         public async Task<ResponseService<IEnumerable<CarsAllDto>>> GetFilters(string model, string brand, string type, int? year, CancellationToken cancellationToken)
@@ -96,11 +102,22 @@ namespace CarSalesWebAPI.Services.Services
 
             if (!carsFilters.Any())
             {
-                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado");
+                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado", HttpStatusCode.NotFound);
             }
 
             var carsFiltersDto = _mapper.Map<IEnumerable<CarsAllDto>>(carsFilters);
-            return GenerateSuccessfullResponse(carsFiltersDto);
+            return GenerateSuccessResponse(carsFiltersDto, HttpStatusCode.OK);
+        }
+        public async Task<ResponseService<IEnumerable<CarsAllDto>>> GetAllPagination(CarsParameters carsParameters, CancellationToken cancellationToken)
+        {
+            var pagedCars = await _uow.CarRepository.GetPagination(carsParameters, cancellationToken);
+            var carsDto = _mapper.Map<IEnumerable<CarsAllDto>>(pagedCars);
+            
+            if (!carsDto.Any())
+            {
+                return GenerateErroResponse<IEnumerable<CarsAllDto>>("Nenhum carro encontrado", HttpStatusCode.NotFound);
+            }
+            return GenerateSuccessResponse(carsDto, HttpStatusCode.OK);
         }
     }
 }

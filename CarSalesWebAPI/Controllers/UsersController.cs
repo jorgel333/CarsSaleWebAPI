@@ -1,6 +1,7 @@
 ﻿using CarSalesWebAPI.Domain.Dtos.UserDtos;
 using CarSalesWebAPI.Domain.Entities;
 using CarSalesWebAPI.Services.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,8 +17,10 @@ namespace CarSalesWebAPI.Controllers
             _userService = userService;
         }
 
+
         [HttpGet("allusers")]
-        public async Task<ActionResult<IEnumerable<User>>> GetAll(CancellationToken cancellation)
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetAll(CancellationToken cancellation)
         {
             var search = await _userService.GetAllUsers(cancellation);
 
@@ -25,11 +28,12 @@ namespace CarSalesWebAPI.Controllers
             {
                 return Ok(search);
             }
-            return BadRequest(search.Message);
+            return NotFound(search.Message);
         }
 
         [HttpGet("allusersdesable")]
-        public async Task<ActionResult<IEnumerable<User>>> GetDisable(CancellationToken cancellation)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetDisable(CancellationToken cancellation)
         {
             var search = await _userService.GetAllCommonUsersDisable(cancellation);
 
@@ -37,23 +41,36 @@ namespace CarSalesWebAPI.Controllers
             {
                 return Ok(search);
             }
-            return BadRequest(search.Message);
+            return NotFound(search.Message);
+        }
+
+        [HttpGet("{id}/userid")]
+        [Authorize]
+        public async Task<ActionResult<UserDto>> GetUserById(int id, CancellationToken cancellationToken)
+        {
+            var user = await _userService.GetUserById(id, cancellationToken);
+
+            if (user.Success)
+            {
+                return Ok(user);
+            }
+            return NotFound(user.Message);
         }
 
         [HttpPost("createcommonuser")]
-        public async Task<ActionResult> CreateUser(CreateUserDto userDto, CancellationToken cancellation)
+        public async Task<ActionResult> CreateUser(CreateCommonUserDto userDto, CancellationToken cancellation)
         {
             var commonUser = await _userService.CreateCommonUser(userDto, cancellation);
 
             if (commonUser.Success)
             {
-                return Ok(); //Retornar um newroute quando implementar o dto para transferencia de dados
+                return Ok();
             }
             return BadRequest(commonUser.Message);
         }
 
         [HttpPost("createadm")]
-        public async Task<ActionResult> CreateAdm(CreateUserDto userDto, CancellationToken cancellation)
+        public async Task<ActionResult> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellation)
         {
             var commonUser = await _userService.CreateAdm(userDto, cancellation);
 
@@ -65,21 +82,35 @@ namespace CarSalesWebAPI.Controllers
         }
 
         [HttpDelete("{id:int}/deleteuser")]
+        [Authorize]
         public async Task<ActionResult> DeleteUser(int id, CancellationToken cancellation)
         {
             var comonUser = await _userService.DeleteUser(id, cancellation);
 
             if (comonUser.Success)
             {
-                return Ok(comonUser);
+                return NoContent();
             }
             return BadRequest(comonUser.Message);
         }
 
         [HttpPut("{id:int}")]
+        [Authorize]
         public async Task<ActionResult> UpdateUser(int id, UpdateUserDto userDto, CancellationToken cancellation)
         {
             var result = await _userService.UpdateUser(id, userDto, cancellation);
+
+            if (result.Success)
+            {
+                return NoContent();
+            }
+            return BadRequest(result.Message);
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult> Login(LoginUserDto loginUser, CancellationToken cancellation)
+        {
+            var result = await _userService.Login(loginUser, cancellation);
 
             if (result.Success)
             {

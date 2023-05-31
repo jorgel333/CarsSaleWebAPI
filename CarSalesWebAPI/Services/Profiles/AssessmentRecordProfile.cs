@@ -8,8 +8,9 @@ namespace CarSalesWebAPI.Services.Profiles
     {
         public AssessmentRecordProfile()
         {
-            CreateMap<AssessmentRecord,  RegisterEvaluationDTO>().ReverseMap();
-            CreateMap<AssessmentRecord, AssessmentCarDetailsDto>().ReverseMap();
+            CreateMap<AssessmentRecord,  RegisterEvaluationDTO>().ReverseMap()
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => 
+                DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")));
         }
     }
 }
