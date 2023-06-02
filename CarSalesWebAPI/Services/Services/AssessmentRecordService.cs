@@ -44,7 +44,7 @@ namespace CarSalesWebAPI.Services.Services
             _uow.AssessmentRecordRepository.Add(assessment);
             _uow.CarRepository.UpdateAverage(car);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessResponse("Avaliação cadastrada", HttpStatusCode.Created);
+            return GenerateSuccessResponse("Avaliação cadastrada com sucesso", HttpStatusCode.NoContent);
         }
     }
 }

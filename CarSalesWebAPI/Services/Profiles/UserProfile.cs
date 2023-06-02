@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CarSalesWebAPI.Domain.Dtos.UserDtos;
 using CarSalesWebAPI.Domain.Entities;
+using System.Globalization;
 
 namespace CarSalesWebAPI.Services.Profiles
 {

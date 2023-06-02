@@ -26,7 +26,7 @@ namespace CarSalesWebAPI.Services.Services
             _criptograph = criptograph;
         }
 
-        public async Task<ResponseService> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellationToken)
+        public async Task<ResponseService<UserDto>> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellationToken)
         {
             var userEmail = await _uow.UserRepository.GetById(u=> u.Email == userDto.Email, cancellationToken);
 
@@ -34,49 +34,48 @@ namespace CarSalesWebAPI.Services.Services
             {
                 if (userDto.Password != userDto.ComfirmPassword)
                 {
-                    return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
+                    return GenerateErroResponse<UserDto>("Senhas diferentes", HttpStatusCode.BadRequest);
                 }
                 userEmail.IsAdmin = true;
                 _uow.UserRepository.UpdateEntity(userEmail);
                 await _uow.Commit(cancellationToken);
-                return GenerateSuccessResponse(HttpStatusCode.Created);
+                var userdto3 = _mapper.Map<UserDto>(userEmail);
+                return GenerateSuccessResponse(userdto3, HttpStatusCode.Created);
             }
 
             if (userDto.Password != userDto.ComfirmPassword)
             {
-                return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
+                return GenerateErroResponse<UserDto>("Senhas diferentes", HttpStatusCode.BadRequest);
             }
             
             var user = _mapper.Map<User>(userDto);
             user.Password = _criptograph.EncryptPassword(userDto.Password);
             _uow.UserRepository.Add(user);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessResponse(HttpStatusCode.Created);
+            var userdto2 = _mapper.Map<UserDto>(user);
+            return GenerateSuccessResponse(userdto2, HttpStatusCode.Created);
         }
 
-        public async Task<ResponseService> CreateCommonUser(CreateCommonUserDto userDto, CancellationToken cancellationToken)
+        public async Task<ResponseService<UserDto>> CreateCommonUser(CreateCommonUserDto userDto, CancellationToken cancellationToken)
         {
-            if (!PerformValidation(new CreateCommonUserDtoValidator(), userDto))
+            var userEmail = await _uow.UserRepository.GetById(u => u.Email == userDto.Email, cancellationToken);
+            
+            if (userEmail != null)
             {
-                GenerateErroValidationResponse(Notify(), HttpStatusCode.BadRequest);
-            }
-            var userEmail = _uow.UserRepository.GetById(u => u.Email == userDto.Email, cancellationToken);
-
-            if(userEmail != null) //especiifcar no banco de dados que essa informação não pode ser nula
-            {
-                return GenerateErroResponse("Email já em uso", HttpStatusCode.BadRequest);
+                return GenerateErroResponse<UserDto>("Email inválido", HttpStatusCode.BadRequest);
             }
 
-            if(userDto.Password != userDto.ComfirmPassword)
+            if (userDto.Password != userDto.ComfirmPassword)
             {
-                return GenerateErroResponse("Senhas diferentes", HttpStatusCode.BadRequest);
+                return GenerateErroResponse<UserDto>("Senhas diferentes", HttpStatusCode.BadRequest);
             }
 
             var user = _mapper.Map<User>(userDto);
             user.Password = _criptograph.EncryptPassword(userDto.Password);
             _uow.UserRepository.Add(user);
             await _uow.Commit(cancellationToken);
-            return GenerateSuccessResponse("Usuário cadastrado com sucesso", HttpStatusCode.Created);
+            var userdto2 = _mapper.Map<UserDto>(user);
+            return GenerateSuccessResponse(userdto2, HttpStatusCode.Created);
         }
 
         public async Task<ResponseService> DeleteUser(int id, CancellationToken cancellationToken)

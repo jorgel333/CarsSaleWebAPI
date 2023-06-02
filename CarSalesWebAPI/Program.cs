@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation;
 using CarSalesWebAPI.Services.Validations.AssessmentRecordValidator;
-using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +43,21 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
 {
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "CarSalesWebAPI",
+        Version = "v1",
+        Contact = new OpenApiContact
+        {
+            Name = "Jorge Leonardo",
+            Email = "exemploemail@mail.com"
+        }
+    });
+
+    var xmlFile = "CarSalesWebAPI.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+
     c.OperationFilter<BearerAthenticationFilter>();
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
@@ -55,7 +69,7 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
         Description = "Header de autorização JWT usando o esquema Bearer.\r\n\r\n" +
-        "Informe 'Bearer'[espaço] e o seu token.\r\n\r\nExemplo : \'Bearer 12345abcdef\'",
+        "Informe o seu token.",
     });
 });
 

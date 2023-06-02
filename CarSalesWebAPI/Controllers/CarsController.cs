@@ -1,4 +1,5 @@
-﻿using CarSalesWebAPI.Domain.Dtos.CarDtos;
+﻿using CarSalesWebAPI.Domain.Dtos.AssessmentRecordDtos;
+using CarSalesWebAPI.Domain.Dtos.CarDtos;
 using CarSalesWebAPI.Domain.Pagination;
 using CarSalesWebAPI.Services.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,13 +13,25 @@ namespace CarSalesWebAPI.Controllers
     public class CarsController : ControllerBase
     {
         private readonly ICarService _carService;
-        public CarsController(ICarService carService)
+        private readonly IAssessmentRecordService _assessmentRecord;
+        public CarsController(ICarService carService, IAssessmentRecordService assessmentRecord)
         {
-            _carService = carService;    
+            _carService = carService;
+            _assessmentRecord = assessmentRecord;
         }
 
+        /// <summary>
+        /// Informações de todos os carros ordenados por média de avaliação
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200">Success</response>
+        /// <response code="404">NotFound</response>
+        /// <returns>Retornar uma lista com todos os carros</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CarsAllDto>>> GetAll(CancellationToken cancellationToken)
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
             var cars = await _carService.GetAllCars(cancellationToken);
 
@@ -26,11 +39,22 @@ namespace CarSalesWebAPI.Controllers
             {
                 return Ok(cars.Value);
             }
-            return BadRequest(cars.Message);
+            return NotFound(cars.Message);
         }
 
+        /// <summary>
+        /// Iformações de todos os carros paginados
+        /// </summary>
+        /// <param name="carsParameters">Dados para paginação</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200">Success</response>
+        /// <response code="404">NotFound</response>
+        /// <returns>Retorna uma lista com todos os carros paginados</returns>
+        [AllowAnonymous]
         [HttpGet("carspaged")]
-        public async Task<ActionResult<IEnumerable<CarsAllDto>>> GetPagination([FromQuery] CarsParameters carsParameters, CancellationToken cancellationToken)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPagination([FromQuery] CarsParameters carsParameters, CancellationToken cancellationToken)
         {
             var result = await _carService.GetAllPagination(carsParameters, cancellationToken);
 
@@ -41,9 +65,19 @@ namespace CarSalesWebAPI.Controllers
             return NotFound(result.Message);
         }
 
-        [HttpGet("{id}")]
+        /// <summary>
+        /// Detalhes de um carro
+        /// </summary>
+        /// <param name="id">Identificador do carro</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200">Success</response>
+        /// <responde code="404">NotFound</responde>
+        /// <returns>Retorna todos os detalhes de um carro</returns>
         [Authorize]
-        public async Task<ActionResult<CarDetailsDto>> GetDetails(int id, CancellationToken cancellationToken)
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetDetails(int id, CancellationToken cancellationToken)
         {
             var newCar = await _carService.GetCarsDetails(id, cancellationToken);
 
@@ -51,12 +85,48 @@ namespace CarSalesWebAPI.Controllers
             {
                 return Ok(newCar.Value);
             }
-            return BadRequest(newCar.Message);
+            return NotFound(newCar.Message);
         }
 
+        /// <summary>
+        /// Filtro de carros
+        /// </summary>
+        /// <param name="model">Modelo do carro</param>
+        /// <param name="brand">Marca do carro</param>
+        /// <param name="type">Tipo do carro</param>
+        /// <param name="year">Ano de fabricação do carro</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="200">Success</response>
+        /// <responde code="404">NotFound</responde>
+        /// <returns>Lista de carros filtrados</returns>
+        [AllowAnonymous]
+        [HttpGet("filter")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetFilter(string model, string brand, string type, int? year, CancellationToken cancellationToken)
+        {
+            var carsFilter = await _carService.GetFilters(model, brand, type, year, cancellationToken);
+
+            if (carsFilter.Success)
+            {
+                return Ok(carsFilter);
+            }
+            return NotFound(carsFilter.Message);
+        }
+
+        /// <summary>
+        /// Cadastro de um carro
+        /// </summary>
+        /// <param name="carDto">Dados do carro</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="201">Success</response>
+        /// <response code="400">BadRequest</response>
+        /// <returns></returns>
         [HttpPost]
         [Authorize(Roles = "admin")]
-        public async Task<ActionResult> CreateCar(CreateCarDto carDto, CancellationToken cancellationToken)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateCar(CreateCarDto carDto, CancellationToken cancellationToken)
         {
             var newCar = await _carService.CreateCar(carDto, cancellationToken);
             
@@ -67,21 +137,19 @@ namespace CarSalesWebAPI.Controllers
             return BadRequest(newCar.Message);
         }
 
-        [HttpGet("filter")]
-        public async Task<ActionResult<IEnumerable<CarsAllDto>>> GetFilter(string model, string brand, string type, int? year, CancellationToken cancellationToken)
-        {
-            var carsFilter = await _carService.GetFilters(model, brand, type, year, cancellationToken);
-            
-            if (carsFilter.Success)
-            {
-                return Ok(carsFilter);
-            }
-            return BadRequest(carsFilter.Message);
-        }
-
+        /// <summary>
+        /// Deleta um carro
+        /// </summary>
+        /// <param name="id">Identificador do carro</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="204">Success</response>
+        /// <response code="400">BadRequest</response>
+        /// <returns></returns>
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "admin")]
-        public async Task<ActionResult> DeleteCar(int id, CancellationToken cancellationToken)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> DeleteCar(int id, CancellationToken cancellationToken)
         {
             var car = await _carService.DeleteCar(id, cancellationToken);
             
@@ -92,9 +160,20 @@ namespace CarSalesWebAPI.Controllers
             return BadRequest(car.Message);
         }
 
+        /// <summary>
+        /// Atualização de dados de um carro
+        /// </summary>
+        /// <param name="id">Identificador do carro</param>
+        /// <param name="carDto">Dados para atualização</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="204">Success</response>
+        /// <response code="400">BadRequest</response>
+        /// <returns></returns>
         [HttpPut]
         [Authorize(Roles = "admin")]
-        public async Task<ActionResult> UpdateCar(int id, UpdateCarDto carDto, CancellationToken cancellationToken)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdateCar(int id, UpdateCarDto carDto, CancellationToken cancellationToken)
         {
             var carFind = await _carService.UpdateCar(id, carDto, cancellationToken);
             
@@ -103,6 +182,29 @@ namespace CarSalesWebAPI.Controllers
                 return NoContent();
             }
             return BadRequest(carFind.Message);
+        }
+
+        /// <summary>
+        /// Cadastro de avaliação de um carro
+        /// </summary>
+        /// <param name="rgEvDto">Dados para avaliação do carro</param>
+        /// <param name="cancellationToken"></param>
+        /// <response code="201">Success</response>
+        /// <response code="400">BadRequest</response>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost("registerevaluation")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> CreateAssessment(RegisterEvaluationDTO rgEvDto, CancellationToken cancellationToken)
+        {
+            var assessment = await _assessmentRecord.RegisterEvaluation(rgEvDto, cancellationToken);
+
+            if (assessment.Success)
+            {
+                return NoContent();
+            }
+            return BadRequest(assessment.Message);
         }
     }
 }

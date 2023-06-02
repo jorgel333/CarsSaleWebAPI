@@ -6,8 +6,8 @@ namespace CarSalesWebAPI.Services.Interfaces.Services
 {
     public interface IUserService : IService
     {
-        Task<ResponseService> CreateCommonUser(CreateCommonUserDto userDto, CancellationToken cancellationToken);
-        Task<ResponseService> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellationToken);
+        Task<ResponseService<UserDto>> CreateCommonUser(CreateCommonUserDto userDto, CancellationToken cancellationToken);
+        Task<ResponseService<UserDto>> CreateAdm(CreateUserAdmDto userDto, CancellationToken cancellationToken);
         Task<ResponseService> DeleteUser(int id, CancellationToken cancellationToken);
         Task<ResponseService> UpdateUser(int id, UpdateUserDto userDto, CancellationToken cancellationToken);
         Task<ResponseService<IEnumerable<UserDto>>> GetAllUsers(CancellationToken cancellation);
